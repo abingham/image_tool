@@ -1,5 +1,5 @@
 from image_tool.png import load, save
-from image_tool.edge_detector import detect_edges
+from image_tool.edge_detector import detect_edges, KIRSH, PREWITT
 
 gs_pixels, width, height = load('llama.png')
 save(gs_pixels, width, height, 'gs_llama.png')
