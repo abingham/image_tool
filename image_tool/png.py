@@ -37,30 +37,30 @@ def stuff(filename):
     #             print(pix)
 
 
-def to_grayscale(filename, outfilename):
+def to_grayscale(pixels, width, height):
+    def to_gs(r, g, b, a):
+        return int(r * 0.2989 + g * 0.5870 + b * 0.1140) if a else 255
+
+    gs_pixels = [
+        [to_gs(r, g, b, a)
+         for r, g, b, a in
+         [row[idx:idx + 4]
+          for idx in range(0, len(row), 4)]]
+        for row in pixels]
+
+    return gs_pixels, width, height
+
+
+def load(filename):
     with open(filename, 'rb') as f:
         r = png.Reader(file=f)
         width, height, pixel_iter, metadata = r.asRGBA8()
         pixels = list(pixel_iter)
-
-    def _pixels(row):
-        for idx in range(0, len(row), 4):
-            yield row[idx:idx + 4]
-
-    def to_gs(r, g, b, a):
-        if a == 0:
-            return 255
-        else:
-            return int(r * 0.2989 + g * 0.5870 + b * 0.1140)
-
-    gs_pixels = [
-        [to_gs(r, g, b, a)
-         for r, g, b, a in _pixels(row)]
-        for row in pixels]
-
-    with open(outfilename, 'wb') as f:
-        w = png.Writer(width, height, greyscale=True, alpha=False, bitdepth=8)
-        w.write(f, gs_pixels)
+    print(metadata)
+    return to_grayscale(pixels, width, height)
 
 
-to_grayscale('llama.png', 'gs_llama.png')
+def save(pixels, width, height, filename):
+    with open(filename, 'wb') as f:
+        w = png.Writer(width, height, greyscale=True, alpha=False, bitdepth=8, planes=1, interlace=0, size=(width, height))
+        w.write(f, pixels)
