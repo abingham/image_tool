@@ -43,7 +43,7 @@ setup(
     platforms='any',
     include_package_data=True,
     install_requires=[
-        'construct',
+        'pypng',
     ],
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax, for
