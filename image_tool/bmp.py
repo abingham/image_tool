@@ -24,7 +24,7 @@ class Kernel:
         self._woffset = len(k[0]) // 2
 
     def __getitem__(self, index):
-        col, row = index
+        row, col = index
         col += self._woffset
         row += self._hoffset
         return self._k[row][col]
@@ -49,29 +49,54 @@ EDGE_DETECTOR_KERNELS = [
 ]
 
 
+def maximum(*iters):
+    for tup in zip(*iters):
+        yield max(*tup)
+
+
 def convolve_cell(kernel, data, col, row):
-    return sum(
-        kernel[row_offset, col_offset] * data[row + row_offset][col + col_offset][1]
-        for col_offset in (-1, 0, 1)
-        for row_offset in (-1, 0, 1))
+    result = sum(
+        kernel[kernel_row, kernel_col] * data[row + kernel_row][col + kernel_col]
+        for kernel_col in (-1, 0, 1)
+        for kernel_row in (-1, 0, 1))
+    result = min(result, 255)
+    return max(result, 0)
 
 
-def convolve(data, height, width, dest, kernels):
-    for row in range(1, height - 1):
-        for col in range(1, width - 1):
-            val = data[row][col]
-            val = max(convolve_cell(k, data, col=col, row=row)
+def convolve(data, kernels):
+    out = data.copy()
+    for row in range(1, data.height - 1):
+        for col in range(1, data.width - 1):
+            val = data.pixels[row][col]
+            val = max(convolve_cell(k, data.pixels,
+                                    col=col, row=row)
                       for k in kernels)
-            val = min(val, 255)
-            val = max(val, 0)
-            dest[row][col] = [0, val, 0]
+            out.pixels[row][col] = val
+    return out
 
 
-def detect_edges(data, height, width, dest):
-    convolve(data, height, width, dest, EDGE_DETECTOR_KERNELS)
+def detect_edges(data):
+    return convolve(data, EDGE_DETECTOR_KERNELS)
 
 
-data = load('llama.bmp')
-edges = data.copy()
-detect_edges(data.pixels, data.height, data.width, edges.pixels)
-save(edges, 'foobar.bmp')
+def to_grayscale(data):
+    gs = data.copy()
+
+    if data.bpp == 1:
+        return gs
+
+    gs.planes = 1
+
+    for row in range(data.height):
+        for col in range(data.width):
+            r, g, b = data.pixels[row][col]
+            gray = int(r * 0.2989 + g * 0.5870 + b * 0.1140)
+            gs.pixels[row][col] = gray
+    return gs
+
+
+data = load('llama2.bmp')
+gray = to_grayscale(data)
+save(gray, 'gray.bmp')
+edges = detect_edges(gray)
+save(edges, 'edges.bmp')
